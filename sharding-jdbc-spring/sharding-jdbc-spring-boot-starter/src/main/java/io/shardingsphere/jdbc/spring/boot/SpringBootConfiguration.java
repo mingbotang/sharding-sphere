@@ -23,6 +23,7 @@ import io.shardingsphere.core.api.ShardingDataSourceFactory;
 import io.shardingsphere.core.exception.ShardingException;
 import io.shardingsphere.core.util.DataSourceUtil;
 import io.shardingsphere.jdbc.spring.boot.masterslave.SpringBootMasterSlaveRuleConfigurationProperties;
+import io.shardingsphere.jdbc.spring.boot.resolve.RelaxedPropertyResolver;
 import io.shardingsphere.jdbc.spring.boot.sharding.SpringBootShardingRuleConfigurationProperties;
 import io.shardingsphere.jdbc.spring.boot.util.PropertyUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +53,7 @@ public class SpringBootConfiguration implements EnvironmentAware {
     @Autowired
     private SpringBootMasterSlaveRuleConfigurationProperties masterSlaveProperties;
     
-    private final Map<String, DataSource> dataSourceMap = new LinkedHashMap<>();
+    public static  final Map<String, DataSource> dataSourceMap = new LinkedHashMap<>();
     
     /**
      * Get data source bean.
@@ -75,11 +76,11 @@ public class SpringBootConfiguration implements EnvironmentAware {
     
     @SuppressWarnings("unchecked")
     private void setDataSourceMap(final Environment environment) {
-        String prefix = "sharding.jdbc.datasource.";
-        String dataSources = environment.getProperty(prefix + "names");
+        RelaxedPropertyResolver propertyResolver = new RelaxedPropertyResolver(environment, "sharding.jdbc.datasource.");
+        String dataSources = propertyResolver.getProperty("names");
         for (String each : dataSources.split(",")) {
             try {
-                Map<String, Object> dataSourceProps = PropertyUtil.handle(environment, prefix + each, Map.class);
+                Map<String, Object> dataSourceProps = propertyResolver.getSubProperties(each + ".");
                 Preconditions.checkState(!dataSourceProps.isEmpty(), "Wrong datasource properties!");
                 DataSource dataSource = DataSourceUtil.getDataSource(dataSourceProps.get("type").toString(), dataSourceProps);
                 dataSourceMap.put(each, dataSource);
